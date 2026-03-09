@@ -24,10 +24,15 @@ export function VoiceButton({ onTranscript, disabled }: VoiceButtonProps) {
         const formData = new FormData();
         formData.append("audio", blob, "recording.pcm");
         const res = await fetch("/api/asr", { method: "POST", body: formData });
-        const data = await res.json();
-        if (data.text) {
-          onTranscript(data.text);
+        if (!res.ok) {
+          throw new Error(`ASR request failed with status ${res.status}`);
         }
+        const data = await res.json();
+        const transcript = typeof data.text === "string" ? data.text.trim() : "";
+        if (!transcript) {
+          throw new Error("ASR returned empty transcript");
+        }
+        onTranscript(transcript);
       } catch (err) {
         console.error("ASR failed:", err);
       } finally {

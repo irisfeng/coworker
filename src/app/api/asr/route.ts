@@ -17,17 +17,29 @@ export async function POST(request: NextRequest) {
   }
 
   const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+  const requestId = crypto.randomUUID().slice(0, 8);
 
   try {
-    const transcript = await transcribeAudio(audioBuffer, apiKey);
+    console.info(`[ASR:${requestId}] start`, {
+      bytes: audioBuffer.length,
+      mimeType: audioFile.type || "unknown",
+    });
+
+    const transcript = await transcribeAudio(audioBuffer, apiKey, requestId);
+
+    console.info(`[ASR:${requestId}] success`, {
+      transcriptLength: transcript.length,
+      preview: transcript.slice(0, 80),
+    });
+
     return NextResponse.json({ text: transcript });
   } catch (error) {
-    console.error("ASR error:", error);
+    console.error(`[ASR:${requestId}] failed`, error);
     return NextResponse.json({ error: "ASR failed" }, { status: 500 });
   }
 }
 
-function transcribeAudio(audioBuffer: Buffer, apiKey: string): Promise<string> {
+function transcribeAudio(audioBuffer: Buffer, apiKey: string, requestId: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(ASR_URL, {
       headers: {
@@ -37,13 +49,27 @@ function transcribeAudio(audioBuffer: Buffer, apiKey: string): Promise<string> {
     });
 
     let transcript = "";
+    let settled = false;
+
+    const finish = (result: { ok: true; transcript: string } | { ok: false; error: Error }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
+      if (result.ok) {
+        resolve(result.transcript);
+      } else {
+        reject(result.error);
+      }
+    };
+
     const timeout = setTimeout(() => {
-      ws.close();
-      reject(new Error("ASR timeout"));
+      finish({ ok: false, error: new Error("ASR timeout") });
     }, 30000);
 
     ws.on("open", () => {
-      // Send session config
       ws.send(
         JSON.stringify({
           event_id: `evt_${Date.now()}_1`,
@@ -62,7 +88,6 @@ function transcribeAudio(audioBuffer: Buffer, apiKey: string): Promise<string> {
         })
       );
 
-      // Send audio in chunks (3200 bytes each)
       const chunkSize = 3200;
       for (let i = 0; i < audioBuffer.length; i += chunkSize) {
         const chunk = audioBuffer.subarray(i, Math.min(i + chunkSize, audioBuffer.length));
@@ -75,7 +100,6 @@ function transcribeAudio(audioBuffer: Buffer, apiKey: string): Promise<string> {
         );
       }
 
-      // Signal end
       ws.send(
         JSON.stringify({
           event_id: `evt_${Date.now()}_fin`,
@@ -89,28 +113,34 @@ function transcribeAudio(audioBuffer: Buffer, apiKey: string): Promise<string> {
         const msg = JSON.parse(data.toString());
         if (msg.type === "conversation.item.input_audio_transcription.completed") {
           transcript += msg.transcript || "";
+          console.info(`[ASR:${requestId}] transcript chunk`, {
+            transcriptLength: transcript.length,
+          });
         } else if (msg.type === "session.finished" || msg.type === "error") {
-          clearTimeout(timeout);
-          ws.close();
           if (msg.type === "error") {
-            reject(new Error(msg.error?.message || "ASR error"));
+            finish({ ok: false, error: new Error(msg.error?.message || "ASR error") });
+          } else if (!transcript.trim()) {
+            finish({ ok: false, error: new Error("ASR finished with empty transcript") });
           } else {
-            resolve(transcript);
+            finish({ ok: true, transcript });
           }
         }
       } catch {
-        // ignore parse errors
+        // Ignore provider messages that are not JSON payloads we care about.
       }
     });
 
     ws.on("error", (err) => {
-      clearTimeout(timeout);
-      reject(err);
+      finish({ ok: false, error: err });
     });
 
     ws.on("close", () => {
-      clearTimeout(timeout);
-      resolve(transcript);
+      if (settled) return;
+      if (!transcript.trim()) {
+        finish({ ok: false, error: new Error("ASR socket closed before transcript completed") });
+      } else {
+        finish({ ok: true, transcript });
+      }
     });
   });
 }

@@ -44,8 +44,6 @@ export default function HomePage() {
         for (const task of data.tasks) {
           await createTask({ ...task, raw_input: text });
         }
-      } else {
-        await createTask({ title: text, raw_input: text });
       }
     } catch {
       await createTask({ title: text, raw_input: text });

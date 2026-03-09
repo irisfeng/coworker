@@ -13,7 +13,7 @@ const statusFilters = [
 
 export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState("");
-  const { tasks, loading, updateStatus, deleteTask } = useTasks(
+  const { tasks, loading, updateStatus, updateTask, deleteTask } = useTasks(
     statusFilter ? { status: statusFilter } : undefined
   );
 
@@ -46,7 +46,13 @@ export default function TasksPage() {
       ) : (
         <div className="space-y-2.5">
           {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} onStatusChange={updateStatus} onDelete={deleteTask} />
+            <TaskCard
+              key={t.id}
+              task={t}
+              onStatusChange={updateStatus}
+              onScheduleChange={(id, due_date) => updateTask({ id, due_date })}
+              onDelete={deleteTask}
+            />
           ))}
         </div>
       )}

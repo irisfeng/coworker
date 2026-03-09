@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/schema";
-import { eq, and, lte, gte, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import dayjs from "dayjs";
@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
   if (priority) conditions.push(eq(tasks.priority, priority as "high" | "mid" | "low"));
   if (due === "today") {
     const today = dayjs().format("YYYY-MM-DD");
-    conditions.push(eq(tasks.due_date, today));
+    conditions.push(sql`substr(${tasks.due_date}, 1, 10) = ${today}`);
   } else if (due === "overdue") {
     const today = dayjs().format("YYYY-MM-DD");
-    conditions.push(lte(tasks.due_date, today));
+    conditions.push(sql`substr(${tasks.due_date}, 1, 10) <= ${today}`);
   }
 
   const result = conditions.length > 0

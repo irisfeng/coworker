@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     {
       "title": "简洁的任务标题，20字以内",
       "description": "补充说明，没有则为 null",
-      "due_date": "YYYY-MM-DD，没有明确日期则为 null",
+      "due_date": "YYYY-MM-DD；如果明确提到时间，则用 YYYY-MM-DD HH:mm；没有明确日期则为 null",
       "priority": "high | mid | low",
       "collaborator": "相关人员，没有则为 null",
       "project_tag": "项目或主题标签，没有则为 null"
@@ -180,10 +180,11 @@ export async function POST(request: NextRequest) {
 3. 明确的闲聊、寒暄、感叹、没有行动要求或安排含义的内容，才返回 {"tasks":[]}。
 4. 一段输入可能包含 0 个、1 个或多个任务，要全部提取。
 5. “明天”“后天”“下周一”“月底”等相对时间要换算成具体日期。
-6. 提到“紧急”“马上”“立刻”“ASAP”“加急”等，priority 设为 high；默认 mid。
-7. 标题优先保留动作和对象，例如“明天下午三点前把合同发给王总”提炼成“给王总发合同”，“周五参加客户交流会”提炼成“参加客户交流会”。
-8. 不能确定的信息填 null。
-9. 不要输出 Markdown，不要解释，不要输出 JSON 以外的任何内容。`,
+6. 如果提到具体时间，例如“今晚8点”“明天下午3点30”“上午10点”，要把时间也写进 due_date，格式为 YYYY-MM-DD HH:mm。
+7. 提到“紧急”“马上”“立刻”“ASAP”“加急”等，priority 设为 high；默认 mid。
+8. 标题优先保留动作和对象，例如“明天下午三点前把合同发给王总”提炼成“给王总发合同”，“周五参加客户交流会”提炼成“参加客户交流会”。
+9. 不能确定的信息填 null。
+10. 不要输出 Markdown，不要解释，不要输出 JSON 以外的任何内容。`,
         },
         { role: "user", content: text },
       ],

@@ -12,6 +12,7 @@ export function useTasks(params?: Record<string, string>) {
     : "";
 
   const refresh = useCallback(async () => {
+    await Promise.resolve();
     setLoading(true);
     const res = await fetch(`/api/tasks${query}`);
     const data = await res.json();
@@ -20,16 +21,28 @@ export function useTasks(params?: Record<string, string>) {
   }, [query]);
 
   useEffect(() => {
-    refresh();
+    const timer = window.setTimeout(() => {
+      void refresh();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [refresh]);
 
-  const updateStatus = async (id: string, status: "todo" | "in_progress" | "done") => {
-    await fetch("/api/tasks", {
+  const updateTask = async (task: Partial<Task> & { id: string }) => {
+    const res = await fetch("/api/tasks", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
+      body: JSON.stringify(task),
     });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      console.error("Update task failed:", error ?? { status: res.status });
+      throw new Error(`Update task failed with status ${res.status}`);
+    }
     refresh();
+  };
+
+  const updateStatus = async (id: string, status: "todo" | "in_progress" | "done") => {
+    await updateTask({ id, status });
   };
 
   const deleteTask = async (id: string) => {
@@ -51,5 +64,5 @@ export function useTasks(params?: Record<string, string>) {
     refresh();
   };
 
-  return { tasks, loading, refresh, updateStatus, deleteTask, createTask };
+  return { tasks, loading, refresh, updateStatus, updateTask, deleteTask, createTask };
 }

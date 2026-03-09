@@ -1,65 +1,104 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import dayjs from "dayjs";
+import { TaskCard, Task } from "@/components/TaskCard";
+import { QuickInput } from "@/components/QuickInput";
+import { useTasks } from "@/hooks/useTasks";
+import { useReminders } from "@/hooks/useReminders";
+
+export default function HomePage() {
+  const { tasks, loading, updateStatus, deleteTask, createTask } = useTasks();
+  const { reminders, dismiss } = useReminders(tasks);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const today = dayjs().format("YYYY-MM-DD");
+
+  const todayTasks = tasks.filter(
+    (t) => t.status !== "done" && (t.due_date === today || (t.due_date && t.due_date < today) || !t.due_date)
+  );
+
+  const overdueTasks = todayTasks.filter((t) => t.due_date && t.due_date < today);
+  const dueTodayTasks = todayTasks.filter((t) => t.due_date === today);
+  const noDueTasks = todayTasks.filter((t) => !t.due_date);
+
+  const handleQuickInput = async (text: string) => {
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/ai/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (data.tasks && data.tasks.length > 0) {
+        for (const task of data.tasks) {
+          await createTask({ ...task, raw_input: text });
+        }
+      } else {
+        await createTask({ title: text, raw_input: text });
+      }
+    } catch {
+      await createTask({ title: text, raw_input: text });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const renderSection = (title: string, items: Task[], highlight?: boolean) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-4">
+        <h2 className={`text-sm font-medium mb-2 ${highlight ? "text-red-500" : "text-gray-500"}`}>
+          {title}（{items.length}）
+        </h2>
+        <div className="space-y-2">
+          {items.map((t) => (
+            <TaskCard key={t.id} task={t} onStatusChange={updateStatus} onDelete={deleteTask} />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="px-4 pt-6 pb-24">
+      <header className="mb-6">
+        <h1 className="text-xl font-bold">CoWorker</h1>
+        <p className="text-sm text-gray-500">{dayjs().format("M月D日 dddd")}</p>
+      </header>
+
+      {reminders.length > 0 && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm font-medium text-red-600">
+              {reminders.length} 项任务需要关注
+            </span>
+          </div>
+          {reminders.slice(0, 3).map((r) => (
+            <div key={r.id} className="flex justify-between items-center text-xs text-red-500 mt-1">
+              <span className="truncate flex-1">{r.title}</span>
+              <button onClick={() => dismiss(r.id)} className="text-red-300 ml-2 shrink-0">
+                ×
+              </button>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
+
+      {loading ? (
+        <p className="text-center text-gray-400 py-8">加载中...</p>
+      ) : todayTasks.length === 0 ? (
+        <p className="text-center text-gray-400 py-8">暂无待办任务</p>
+      ) : (
+        <>
+          {renderSection("逾期", overdueTasks, true)}
+          {renderSection("今日", dueTodayTasks)}
+          {renderSection("待安排", noDueTasks)}
+        </>
+      )}
+
+      <QuickInput onSubmit={handleQuickInput} loading={aiLoading} />
     </div>
   );
 }

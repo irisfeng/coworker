@@ -4,9 +4,42 @@ import { db } from "@/lib/db";
 import { tasks } from "@/lib/schema";
 import { and, or, gte, lte, eq, lt, ne, isNull } from "drizzle-orm";
 import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import { z } from "zod";
+
+dayjs.extend(isoWeek);
+
+function isValidDateString(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && dayjs(value).isValid() && dayjs(value).format("YYYY-MM-DD") === value;
+}
+
+const ReportRequestSchema = z.object({
+  type: z.enum(["daily", "weekly", "project"]),
+  date: z.string().optional(),
+  project: z.string().trim().min(1).max(100).optional(),
+}).superRefine((value, ctx) => {
+  if (value.date !== undefined && !isValidDateString(value.date)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["date"],
+      message: "date must be YYYY-MM-DD",
+    });
+  }
+});
 
 export async function POST(request: NextRequest) {
-  const { type, date, project } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid json body" }, { status: 400 });
+  }
+  const parsed = ReportRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const { type, date, project } = parsed.data;
 
   let startDate: string;
   let endDate: string;
@@ -18,8 +51,8 @@ export async function POST(request: NextRequest) {
     reportTitle = `${startDate} 日报`;
   } else if (type === "weekly") {
     const d = dayjs(date || undefined);
-    startDate = d.startOf("week").format("YYYY-MM-DD");
-    endDate = d.endOf("week").format("YYYY-MM-DD");
+    startDate = d.startOf("isoWeek").format("YYYY-MM-DD");
+    endDate = d.endOf("isoWeek").format("YYYY-MM-DD");
     reportTitle = `${startDate} ~ ${endDate} 周报`;
   } else {
     startDate = "2000-01-01";

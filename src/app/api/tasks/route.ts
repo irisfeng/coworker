@@ -17,6 +17,7 @@ const CreateTaskSchema = z.object({
   project_tag: NullableString,
   raw_input: NullableString,
 });
+const CreateTasksSchema = z.union([CreateTaskSchema, z.array(CreateTaskSchema).min(1)]);
 
 const UpdateTaskSchema = z.object({
   id: z.string(),
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     conditions.push(sql`substr(${tasks.due_date}, 1, 10) = ${today}`);
   } else if (due === "overdue") {
     const today = dayjs().format("YYYY-MM-DD");
-    conditions.push(sql`substr(${tasks.due_date}, 1, 10) <= ${today}`);
+    conditions.push(sql`substr(${tasks.due_date}, 1, 10) < ${today}`);
   }
 
   const result = conditions.length > 0
@@ -55,20 +56,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const parsed = CreateTaskSchema.safeParse(body);
+  const parsed = CreateTasksSchema.safeParse(body);
   if (!parsed.success) {
     console.error("[tasks.create] validation failed", parsed.error.flatten(), body);
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const task = {
+  const payloads = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
+  const now = dayjs().toISOString();
+  const createdTasks = payloads.map((payload) => ({
     id: uuidv4(),
-    ...parsed.data,
-    created_at: dayjs().toISOString(),
-  };
+    ...payload,
+    created_at: now,
+  }));
 
-  await db.insert(tasks).values(task);
-  return NextResponse.json(task, { status: 201 });
+  await db.insert(tasks).values(createdTasks);
+  return NextResponse.json(Array.isArray(parsed.data) ? createdTasks : createdTasks[0], { status: 201 });
 }
 
 export async function PUT(request: NextRequest) {
@@ -80,10 +83,12 @@ export async function PUT(request: NextRequest) {
   }
 
   const { id, ...updates } = parsed.data;
-  const updateData: Record<string, string | undefined> = { ...updates };
+  const updateData: Record<string, string | null | undefined> = { ...updates };
 
   if (updates.status === "done") {
     updateData.completed_at = dayjs().toISOString();
+  } else if (updates.status) {
+    updateData.completed_at = null;
   }
 
   await db.update(tasks).set(updateData).where(eq(tasks.id, id));

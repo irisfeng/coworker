@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import WebSocket from "ws";
 
 const ASR_URL = "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3-asr-flash-realtime";
+const MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader) {
+    const contentLength = Number(contentLengthHeader);
+    if (Number.isFinite(contentLength) && contentLength > MAX_AUDIO_UPLOAD_BYTES) {
+      return NextResponse.json({ error: "audio too large" }, { status: 413 });
+    }
+  }
+
   const formData = await request.formData();
   const audioFile = formData.get("audio") as Blob;
 
   if (!audioFile) {
     return NextResponse.json({ error: "audio required" }, { status: 400 });
+  }
+  if (audioFile.size > MAX_AUDIO_UPLOAD_BYTES) {
+    return NextResponse.json({ error: "audio too large" }, { status: 413 });
   }
 
   const apiKey = process.env.DASHSCOPE_API_KEY;
@@ -17,6 +29,9 @@ export async function POST(request: NextRequest) {
   }
 
   const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+  if (audioBuffer.length > MAX_AUDIO_UPLOAD_BYTES) {
+    return NextResponse.json({ error: "audio too large" }, { status: 413 });
+  }
   const requestId = crypto.randomUUID().slice(0, 8);
 
   try {
@@ -29,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     console.info(`[ASR:${requestId}] success`, {
       transcriptLength: transcript.length,
-      preview: transcript.slice(0, 80),
     });
 
     return NextResponse.json({ text: transcript });

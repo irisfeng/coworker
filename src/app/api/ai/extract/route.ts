@@ -108,10 +108,6 @@ const CHITCHAT_PATTERNS = [
   /^(在吗|谢谢|多谢|哈哈|哈|嗯嗯|哦哦)[!！,.，。]*$/i,
 ];
 
-function previewText(text: string, max = 80) {
-  return text.length > max ? `${text.slice(0, max)}...` : text;
-}
-
 function containsAny(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(keyword));
 }
@@ -175,7 +171,6 @@ export async function POST(request: NextRequest) {
     console.info(`[AI extract:${requestId}] start`, {
       model: AI_MODEL,
       inputLength: text.length,
-      preview: previewText(text),
     });
 
     const response = await ai.chat.completions.create({
@@ -235,7 +230,6 @@ export async function POST(request: NextRequest) {
     console.info(`[AI extract:${requestId}] success`, {
       taskCount: tasks.length,
       fallback: tasks.length === 1 && tasks[0]?.title === normalizeText(text),
-      preview: previewText(content),
     });
 
     return NextResponse.json({ tasks });

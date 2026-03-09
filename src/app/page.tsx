@@ -16,7 +16,7 @@ function sortByDueDate(items: Task[]) {
 }
 
 export default function HomePage() {
-  const { tasks, loading, updateStatus, updateTask, deleteTask, createTask } = useTasks();
+  const { tasks, loading, updateStatus, updateTask, deleteTask, createTask, createTasks } = useTasks();
   const { reminders, dismiss } = useReminders(tasks);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -65,9 +65,7 @@ export default function HomePage() {
       });
       const data = await res.json();
       if (data.tasks && data.tasks.length > 0) {
-        for (const task of data.tasks) {
-          await createTask({ ...task, raw_input: text });
-        }
+        await createTasks(data.tasks.map((task: Partial<Task>) => ({ ...task, raw_input: text })));
       }
     } catch {
       await createTask({ title: text, raw_input: text });

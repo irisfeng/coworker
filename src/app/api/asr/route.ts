@@ -81,8 +81,8 @@ function transcribeAudio(audioBuffer: Buffer, apiKey: string, requestId: string)
             input_audio_transcription: { language: "zh" },
             turn_detection: {
               type: "server_vad",
-              threshold: 0.0,
-              silence_duration_ms: 400,
+              threshold: 0.3,
+              silence_duration_ms: 600,
             },
           },
         })

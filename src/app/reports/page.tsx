@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 
 type ReportType = "daily" | "weekly" | "project";
@@ -8,9 +8,25 @@ type ReportType = "daily" | "weekly" | "project";
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>("daily");
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [project, setProject] = useState("");
+  const [projects, setProjects] = useState<string[]>([]);
   const [report, setReport] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/tasks")
+      .then((r) => r.json())
+      .then((tasks: { project_tag?: string | null }[]) => {
+        const tags = [
+          ...new Set(
+            tasks.map((t) => t.project_tag).filter((t): t is string => !!t)
+          ),
+        ];
+        setProjects(tags.sort());
+      })
+      .catch(() => {});
+  }, []);
 
   const generate = async () => {
     setLoading(true);
@@ -19,7 +35,11 @@ export default function ReportsPage() {
       const res = await fetch("/api/ai/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: reportType, date }),
+        body: JSON.stringify({
+          type: reportType,
+          date,
+          ...(reportType === "project" && project ? { project } : {}),
+        }),
       });
       const data = await res.json();
       setReport(data.report || "暂无数据可生成报告");
@@ -63,12 +83,27 @@ export default function ReportsPage() {
       </div>
 
       <div className="flex gap-2 mb-5">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="flex-1 bg-white rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-accent"
-        />
+        {reportType === "project" ? (
+          <select
+            value={project}
+            onChange={(e) => setProject(e.target.value)}
+            className="flex-1 bg-white rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-accent"
+          >
+            <option value="">全部项目</option>
+            {projects.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="flex-1 bg-white rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-accent"
+          />
+        )}
         <button
           onClick={generate}
           disabled={loading}
@@ -87,7 +122,8 @@ export default function ReportsPage() {
         <div className="bg-white rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-warm-200/60">
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs text-warm-500 font-medium">
-              {reportType === "daily" ? "日报" : reportType === "weekly" ? "周报" : "项目报告"} · {date}
+              {reportType === "daily" ? "日报" : reportType === "weekly" ? "周报" : "项目报告"}
+              {reportType === "project" && project ? ` · ${project}` : reportType !== "project" ? ` · ${date}` : ""}
             </span>
             <button
               onClick={copyReport}

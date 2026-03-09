@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ai, AI_MODEL } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/schema";
-import { and, gte, lte, eq } from "drizzle-orm";
+import { and, or, gte, lte, eq, lt, ne, isNull } from "drizzle-orm";
 import dayjs from "dayjs";
 
 export async function POST(request: NextRequest) {
@@ -27,10 +27,19 @@ export async function POST(request: NextRequest) {
     reportTitle = project ? `${project} 项目报告` : "项目报告";
   }
 
-  const conditions = [
-    gte(tasks.created_at, startDate),
-    lte(tasks.created_at, endDate + "T23:59:59"),
-  ];
+  // 查询该时间段内：到期的任务 OR 完成的任务 OR 逾期未完成 OR 无截止日期的待办
+  const timeCondition = or(
+    // 到期日在时间段内
+    and(gte(tasks.due_date, startDate), lte(tasks.due_date, endDate + "T23:59:59")),
+    // 完成时间在时间段内
+    and(gte(tasks.completed_at, startDate), lte(tasks.completed_at, endDate + "T23:59:59")),
+    // 逾期未完成：到期日在时间段之前且未完成
+    and(lt(tasks.due_date, startDate), ne(tasks.status, "done")),
+    // 无截止日期的未完成任务（仅项目报告包含）
+    ...(type === "project" ? [and(isNull(tasks.due_date), ne(tasks.status, "done"))] : [])
+  );
+
+  const conditions = [timeCondition];
   if (project) conditions.push(eq(tasks.project_tag, project));
 
   const taskList = await db.select().from(tasks).where(and(...conditions));
@@ -42,7 +51,7 @@ export async function POST(request: NextRequest) {
   const taskSummary = taskList
     .map(
       (t) =>
-        `- [${t.status}] ${t.title}${t.due_date ? ` (截止:${t.due_date})` : ""}${t.collaborator ? ` [${t.collaborator}]` : ""}${t.project_tag ? ` #${t.project_tag}` : ""}`
+        `- [${t.status}] ${t.title}${t.due_date ? ` (截止:${t.due_date})` : ""}${t.completed_at ? ` (完成:${t.completed_at.slice(0, 10)})` : ""}${t.collaborator ? ` [${t.collaborator}]` : ""}${t.project_tag ? ` #${t.project_tag}` : ""}`
     )
     .join("\n");
 

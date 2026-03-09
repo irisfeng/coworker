@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { tasks } from "@/lib/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import dayjs from "dayjs";
+import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
 const NullableString = z.string().nullish().transform((value) => value ?? undefined);
 
@@ -31,12 +32,20 @@ const UpdateTaskSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const db = await getDb();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const priority = searchParams.get("priority");
   const due = searchParams.get("due");
 
-  const conditions = [];
+  const conditions = [eq(tasks.user_id, userId)];
   if (status) conditions.push(eq(tasks.status, status as "todo" | "in_progress" | "done"));
   if (priority) conditions.push(eq(tasks.priority, priority as "high" | "mid" | "low"));
   if (due === "today") {
@@ -55,6 +64,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const db = await getDb();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   const body = await request.json();
   const parsed = CreateTasksSchema.safeParse(body);
   if (!parsed.success) {
@@ -66,6 +83,7 @@ export async function POST(request: NextRequest) {
   const now = dayjs().toISOString();
   const createdTasks = payloads.map((payload) => ({
     id: uuidv4(),
+    user_id: userId,
     ...payload,
     created_at: now,
   }));
@@ -75,6 +93,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const db = await getDb();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   const body = await request.json();
   const parsed = UpdateTaskSchema.safeParse(body);
   if (!parsed.success) {
@@ -91,18 +117,37 @@ export async function PUT(request: NextRequest) {
     updateData.completed_at = null;
   }
 
-  await db.update(tasks).set(updateData).where(eq(tasks.id, id));
-  const updated = await db.select().from(tasks).where(eq(tasks.id, id));
+  await db
+    .update(tasks)
+    .set(updateData)
+    .where(and(eq(tasks.id, id), eq(tasks.user_id, userId)));
+  const updated = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, id), eq(tasks.user_id, userId)));
+
+  if (!updated[0]) {
+    return NextResponse.json({ error: "task not found" }, { status: 404 });
+  }
+
   return NextResponse.json(updated[0]);
 }
 
 export async function DELETE(request: NextRequest) {
+  const db = await getDb();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
 
-  await db.delete(tasks).where(eq(tasks.id, id));
+  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.user_id, userId)));
   return NextResponse.json({ ok: true });
 }

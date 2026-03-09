@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ai, AI_MODEL } from "@/lib/ai";
 import dayjs from "dayjs";
+import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
 const ACTION_KEYWORDS = [
   "安排",
@@ -159,6 +160,12 @@ function fallbackTasks(text: string) {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   const { text } = await request.json();
   if (!text) {
     return NextResponse.json({ error: "text required" }, { status: 400 });

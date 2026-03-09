@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import WebSocket from "ws";
+import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
 const ASR_URL = "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3-asr-flash-realtime";
 const MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
+  try {
+    await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   const contentLengthHeader = request.headers.get("content-length");
   if (contentLengthHeader) {
     const contentLength = Number(contentLengthHeader);

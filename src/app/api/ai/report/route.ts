@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ai, AI_MODEL } from "@/lib/ai";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { tasks } from "@/lib/schema";
 import { and, or, gte, lte, eq, lt, ne, isNull } from "drizzle-orm";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import { z } from "zod";
+import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
 dayjs.extend(isoWeek);
 
@@ -28,6 +29,14 @@ const ReportRequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const db = await getDb();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (error) {
+    return handleAuthError(error);
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -72,7 +81,7 @@ export async function POST(request: NextRequest) {
     ...(type === "project" ? [and(isNull(tasks.due_date), ne(tasks.status, "done"))] : [])
   );
 
-  const conditions = [timeCondition];
+  const conditions = [eq(tasks.user_id, userId), timeCondition];
   if (project) conditions.push(eq(tasks.project_tag, project));
 
   const taskList = await db.select().from(tasks).where(and(...conditions));

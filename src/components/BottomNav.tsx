@@ -1,6 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 const tabs = [
@@ -35,6 +37,7 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-warm-200 z-50">
@@ -54,6 +57,25 @@ export function BottomNav() {
             </Link>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => {
+            startTransition(async () => {
+              await signOut({ redirectTo: "/login" });
+            });
+          }}
+          className="flex-1 flex flex-col items-center py-2.5 text-[11px] text-warm-500 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15M18 12H9m0 0l3-3m-3 3l3 3"
+            />
+          </svg>
+          <span className="mt-0.5">{isPending ? "退出中" : "退出"}</span>
+        </button>
       </div>
     </nav>
   );

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { BottomNav } from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "CoWorker",
@@ -21,12 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased bg-warm-50 text-warm-900">
-        <main className="pb-20 min-h-screen max-w-lg mx-auto">
-          {children}
-        </main>
-        <BottomNav />
-      </body>
+      <body className="antialiased bg-warm-50 text-warm-900">{children}</body>
     </html>
   );
 }

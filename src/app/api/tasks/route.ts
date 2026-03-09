@@ -6,25 +6,27 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import dayjs from "dayjs";
 
+const NullableString = z.string().nullish().transform((value) => value ?? undefined);
+
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
-  description: z.string().optional(),
-  due_date: z.string().optional(),
+  description: NullableString,
+  due_date: NullableString,
   priority: z.enum(["high", "mid", "low"]).default("mid"),
-  collaborator: z.string().optional(),
-  project_tag: z.string().optional(),
-  raw_input: z.string().optional(),
+  collaborator: NullableString,
+  project_tag: NullableString,
+  raw_input: NullableString,
 });
 
 const UpdateTaskSchema = z.object({
   id: z.string(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  due_date: z.string().optional(),
+  title: NullableString,
+  description: NullableString,
+  due_date: NullableString,
   priority: z.enum(["high", "mid", "low"]).optional(),
   status: z.enum(["todo", "in_progress", "done"]).optional(),
-  collaborator: z.string().optional(),
-  project_tag: z.string().optional(),
+  collaborator: NullableString,
+  project_tag: NullableString,
 });
 
 export async function GET(request: NextRequest) {
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const parsed = CreateTaskSchema.safeParse(body);
   if (!parsed.success) {
+    console.error("[tasks.create] validation failed", parsed.error.flatten(), body);
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
@@ -72,6 +75,7 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const parsed = UpdateTaskSchema.safeParse(body);
   if (!parsed.success) {
+    console.error("[tasks.update] validation failed", parsed.error.flatten(), body);
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 

@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.0",
     "better-sqlite3": "^12.6.2",
     "dayjs": "^1.11.19",
     "drizzle-orm": "^0.45.1",

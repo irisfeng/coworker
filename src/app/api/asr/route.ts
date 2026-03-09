@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import WebSocket from "ws";
 
-const ASR_URL = "wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3-asr-flash-realtime";
+const ASR_URL = "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3-asr-flash-realtime";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();

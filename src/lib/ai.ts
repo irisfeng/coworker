@@ -4,7 +4,7 @@ const provider = process.env.AI_PROVIDER || "qwen";
 
 const configs = {
   qwen: {
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
     apiKey: process.env.DASHSCOPE_API_KEY || "",
     model: "qwen-plus",
   },

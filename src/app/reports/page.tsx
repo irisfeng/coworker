@@ -43,18 +43,18 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="px-4 pt-6">
-      <h1 className="text-xl font-bold mb-4">报告</h1>
+    <div className="px-4 pt-8">
+      <h1 className="text-2xl font-semibold tracking-tight text-warm-800 mb-5">报告</h1>
 
       <div className="flex gap-2 mb-4">
         {types.map((t) => (
           <button
             key={t.value}
             onClick={() => setReportType(t.value)}
-            className={`px-3 py-1.5 rounded-full text-xs ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
               reportType === t.value
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 text-gray-600"
+                ? "bg-accent text-white shadow-sm"
+                : "bg-white text-warm-600 border border-warm-200"
             }`}
           >
             {t.label}
@@ -62,34 +62,45 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-5">
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="flex-1 bg-gray-100 rounded-lg px-3 py-2 text-sm outline-none"
+          className="flex-1 bg-white rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-accent"
         />
         <button
           onClick={generate}
           disabled={loading}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-40"
+          className="bg-accent text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-30 shadow-sm transition-colors"
         >
-          {loading ? "生成中..." : "生成"}
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              生成中
+            </span>
+          ) : "生成报告"}
         </button>
       </div>
 
       {report && (
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-500">报告内容</span>
+        <div className="bg-white rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-warm-200/60">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs text-warm-500 font-medium">
+              {reportType === "daily" ? "日报" : reportType === "weekly" ? "周报" : "项目报告"} · {date}
+            </span>
             <button
               onClick={copyReport}
-              className="text-xs text-blue-500"
+              className={`text-xs font-medium transition-colors ${
+                copied ? "text-success" : "text-accent"
+              }`}
             >
-              {copied ? "已复制" : "复制"}
+              {copied ? "已复制" : "复制内容"}
             </button>
           </div>
-          <pre className="text-sm whitespace-pre-wrap leading-relaxed">{report}</pre>
+          <div className="border-t border-warm-200/60 pt-3">
+            <pre className="text-sm whitespace-pre-wrap leading-relaxed text-warm-700 font-[inherit]">{report}</pre>
+          </div>
         </div>
       )}
     </div>

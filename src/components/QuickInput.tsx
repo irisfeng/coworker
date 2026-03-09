@@ -25,7 +25,7 @@ export function QuickInput({ onSubmit, loading }: QuickInputProps) {
   };
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-40">
+    <div className="fixed bottom-[52px] left-0 right-0 bg-warm-50/90 backdrop-blur-lg border-t border-warm-200/60 px-4 py-3 z-40">
       <div className="max-w-lg mx-auto flex items-center gap-2">
         <input
           type="text"
@@ -33,16 +33,22 @@ export function QuickInput({ onSubmit, loading }: QuickInputProps) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           placeholder="输入任务，如：下周三前交方案给客户A"
-          className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-300"
+          className="flex-1 bg-white rounded-xl px-4 py-2.5 text-sm outline-none border border-warm-200 focus:border-accent focus:ring-1 focus:ring-accent/20 placeholder:text-warm-400"
           disabled={loading}
         />
         <VoiceButton onTranscript={handleVoiceTranscript} disabled={loading} />
         <button
           onClick={handleSubmit}
           disabled={!text.trim() || loading}
-          className="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center text-lg disabled:opacity-40 shrink-0"
+          className="bg-accent text-white rounded-xl w-10 h-10 flex items-center justify-center disabled:opacity-30 shrink-0 shadow-sm"
         >
-          {loading ? "..." : "↑"}
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+            </svg>
+          )}
         </button>
       </div>
     </div>

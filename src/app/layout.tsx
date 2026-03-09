@@ -21,8 +21,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased bg-gray-50 text-gray-900">
-        <main className="pb-16 min-h-screen max-w-lg mx-auto">
+      <body className="antialiased bg-warm-50 text-warm-900">
+        <main className="pb-20 min-h-screen max-w-lg mx-auto">
           {children}
         </main>
         <BottomNav />

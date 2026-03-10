@@ -96,7 +96,7 @@ export default function HomePage() {
               key={task.id}
               task={task}
               onStatusChange={updateStatus}
-              onScheduleChange={(id, due_date) => updateTask({ id, due_date })}
+              onUpdateTask={updateTask}
               onDelete={deleteTask}
             />
           ))}

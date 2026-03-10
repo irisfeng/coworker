@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import dayjs from "dayjs";
 import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
-const NullableString = z.string().nullish().transform((value) => value ?? undefined);
+const NullableString = z.string().nullish();
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
@@ -109,7 +109,11 @@ export async function PUT(request: NextRequest) {
   }
 
   const { id, ...updates } = parsed.data;
-  const updateData: Record<string, string | null | undefined> = { ...updates };
+  // Keep null values (to clear fields) but strip undefined (not provided)
+  const updateData: Record<string, string | null> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (value !== undefined) updateData[key] = value;
+  }
 
   if (updates.status === "done") {
     updateData.completed_at = dayjs().toISOString();

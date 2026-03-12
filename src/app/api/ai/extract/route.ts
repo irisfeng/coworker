@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ai, AI_MODEL } from "@/lib/ai";
-import dayjs from "dayjs";
+import dayjs from "@/lib/dayjs";
 import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
 const ACTION_KEYWORDS = [

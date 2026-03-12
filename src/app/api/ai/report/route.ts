@@ -3,7 +3,7 @@ import { ai, AI_MODEL } from "@/lib/ai";
 import { getDb } from "@/lib/db";
 import { tasks } from "@/lib/schema";
 import { and, or, gte, lte, eq, lt, ne, isNull } from "drizzle-orm";
-import dayjs from "dayjs";
+import dayjs from "@/lib/dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import { z } from "zod";
 import { handleAuthError, requireUserId } from "@/lib/auth-api";

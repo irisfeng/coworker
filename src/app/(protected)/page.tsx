@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import dayjs from "dayjs";
+import dayjs from "@/lib/dayjs";
 import "dayjs/locale/zh-cn";
 import { TaskCard, Task } from "@/components/TaskCard";
 import { QuickInput } from "@/components/QuickInput";

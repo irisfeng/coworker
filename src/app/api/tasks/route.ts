@@ -4,7 +4,7 @@ import { tasks } from "@/lib/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
-import dayjs from "dayjs";
+import dayjs from "@/lib/dayjs";
 import { handleAuthError, requireUserId } from "@/lib/auth-api";
 
 const NullableString = z.string().nullish();

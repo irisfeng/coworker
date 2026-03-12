@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dayjs from "dayjs";
+import dayjs from "@/lib/dayjs";
 import type { Task } from "@/components/TaskCard";
 import { getDueDatePart } from "@/lib/due";
 

@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs from "@/lib/dayjs";
 
 export function getDueDatePart(value: string | null | undefined) {
   if (!value) return null;
